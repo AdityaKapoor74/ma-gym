@@ -45,7 +45,7 @@ class Combat(gym.Env):
     metadata = {'render.modes': ['human', 'rgb_array']}
 
     def __init__(self, grid_shape=(15, 15), n_agents=5, n_opponents=5, init_health=3, full_observable=False,
-                 step_cost=0, max_steps=100, step_cool=1):
+                 step_cost=-0.1, max_steps=100, step_cool=1):
         self._grid_shape = grid_shape
         self.n_agents = n_agents
         self._n_opponents = n_opponents
@@ -165,6 +165,7 @@ class Combat(gym.Env):
                 feature = np.array([-1, opp_i, opp_hp, 1 if self._opp_cool[opp_i] else -1,
                                     pos[0] / self._grid_shape[0], pos[1] / self._grid_shape[1]], dtype=np.float)
                 state[opp_i + self.n_agents] = feature
+
         return state.flatten()
 
     def get_state_size(self):
