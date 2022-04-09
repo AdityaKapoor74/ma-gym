@@ -142,9 +142,10 @@ class Combat(gym.Env):
                             _agent_i_obs[4][row][col] = entity_position[0] / self._grid_shape[0]  # x-coordinate
                             _agent_i_obs[5][row][col] = entity_position[1] / self._grid_shape[1]  # y-coordinate
 
-            _agent_i_obs = _agent_i_obs.flatten().tolist()
+            # _agent_i_obs = _agent_i_obs.flatten().tolist()
             _obs.append(_agent_i_obs)
-        return _obs
+        # print("agent_position", self.agent_pos)
+        return np.array(_obs)
 
     def get_state(self):
         state = np.zeros((self.n_agents + self._n_opponents, 6))
@@ -423,6 +424,8 @@ class Combat(gym.Env):
     def step(self, agents_action):
         assert len(agents_action) == self.n_agents
 
+        # print("agents_action", agents_action)
+
         self._step_count += 1
         rewards = [self._step_cost for _ in range(self.n_agents)]
 
@@ -504,7 +507,15 @@ class Combat(gym.Env):
         for i in range(self.n_agents):
             self._total_episode_reward[i] += rewards[i]
 
-        return self.get_agent_obs(), rewards, self._agent_dones, {'health': self.agent_health}
+
+        info = {
+        "num_agents_alive": sum([v>0 for k, v in self.agent_health.items()]),
+        "num_opp_agents_alive": sum([v>0 for k, v in self.opp_health.items()]),
+        "total_agents_health": sum([v for k, v in self.agent_health.items()]),
+        "total_opp_agents_health": sum([v for k, v in self.opp_health.items()])
+        }
+
+        return self.get_agent_obs(), rewards, self._agent_dones, info
 
     def seed(self, n=None):
         self.np_random, seed = seeding.np_random(n)
