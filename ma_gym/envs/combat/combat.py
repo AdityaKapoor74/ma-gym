@@ -53,6 +53,7 @@ class Combat(gym.Env):
         self._step_cool = step_cool + 1
         self._step_cost = step_cost
         self._step_count = None
+        self._episode_count = 0
 
         self.action_space = MultiAgentActionSpace(
             [spaces.Discrete(5 + self._n_opponents) for _ in range(self.n_agents)])
@@ -464,7 +465,16 @@ class Combat(gym.Env):
                 if self._agent_cool_step[agent_i] == 0 and not self._agent_cool[agent_i]:
                     self._agent_cool[agent_i] = True
 
-        opp_action = self.opps_action
+        # curriculum learning
+        if self._episode_count < 5000: # don't move
+            opp_action = [4 for _ in range(self._n_opponents)]
+        elif self._episode_count >= 5000 and self._episode_count < 10000: # just move
+            opp_action = [random.randint(0,4) for _ in range(self._n_opponents)]
+        else:
+            opp_action = self.opps_action
+
+
+        # opp_action = self.opps_action
         for opp_i, action in enumerate(opp_action):
             if self.opp_health[opp_i] > 0:
                 target_agent = action - 5
@@ -506,6 +516,9 @@ class Combat(gym.Env):
                 or (sum([v for k, v in self.opp_health.items()]) == 0) \
                 or (sum([v for k, v in self.agent_health.items()]) == 0):
             self._agent_dones = [True for _ in range(self.n_agents)]
+
+        if all(self._agent_dones):
+            self._episode_count += 1
 
         for i in range(self.n_agents):
             self._total_episode_reward[i] += rewards[i]
