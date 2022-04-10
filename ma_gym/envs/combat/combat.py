@@ -427,7 +427,10 @@ class Combat(gym.Env):
         # print("agents_action", agents_action)
 
         self._step_count += 1
-        rewards = [self._step_cost for _ in range(self.n_agents)]
+        sum_opp_health = sum([v for k, v in self.opp_health.items()])/10.0
+        sum_agent_health = sum([v for k, v in self.agent_health.items()])/10.0
+        self.step_cost = np.round(sum_agent_health-sum_opp_health,2)
+        rewards = [self.step_cost for _ in range(self.n_agents)]
 
         # What's the confusion?
         # What if agents attack each other at the same time? Should both of them be effected?
