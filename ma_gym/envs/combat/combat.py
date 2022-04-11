@@ -45,7 +45,7 @@ class Combat(gym.Env):
     metadata = {'render.modes': ['human', 'rgb_array']}
 
     def __init__(self, grid_shape=(15, 15), n_agents=5, n_opponents=5, init_health=3, full_observable=False,
-                 step_cost=-0.1, max_steps=100, step_cool=1):
+                 step_cost=-0.1, max_steps=40, step_cool=1):
         self._grid_shape = grid_shape
         self.n_agents = n_agents
         self._n_opponents = n_opponents
@@ -53,7 +53,7 @@ class Combat(gym.Env):
         self._step_cool = step_cool + 1
         self._step_cost = step_cost
         self._step_count = None
-        self._episode_count = 0
+        self._episode_count = -1
 
         self.action_space = MultiAgentActionSpace(
             [spaces.Discrete(5 + self._n_opponents) for _ in range(self.n_agents)])
@@ -232,6 +232,7 @@ class Combat(gym.Env):
 
     def reset(self):
         self._step_count = 0
+        self._episode_count += 1
         self._total_episode_reward = [0 for _ in range(self.n_agents)]
         self.agent_health = {_: self._init_health for _ in range(self.n_agents)}
         self.opp_health = {_: self._init_health for _ in range(self._n_opponents)}
@@ -425,8 +426,6 @@ class Combat(gym.Env):
     def step(self, agents_action):
         assert len(agents_action) == self.n_agents
 
-        # print("agents_action", agents_action)
-
         self._step_count += 1
         sum_opp_health = sum([v for k, v in self.opp_health.items()])/10.0
         sum_agent_health = sum([v for k, v in self.agent_health.items()])/10.0
@@ -466,9 +465,9 @@ class Combat(gym.Env):
                     self._agent_cool[agent_i] = True
 
         # curriculum learning
-        if self._episode_count < 5000: # don't move
+        if self._episode_count < 1000: # don't move
             opp_action = [4 for _ in range(self._n_opponents)]
-        elif self._episode_count >= 5000 and self._episode_count < 10000: # just move
+        elif self._episode_count >= 1000 and self._episode_count < 5000: # just move
             opp_action = [random.randint(0,4) for _ in range(self._n_opponents)]
         else:
             opp_action = self.opps_action
@@ -512,13 +511,9 @@ class Combat(gym.Env):
                     self.__update_opp_pos(opp_i, action)
 
         # step overflow or all opponents dead
-        if (self._step_count >= self._max_steps) \
-                or (sum([v for k, v in self.opp_health.items()]) == 0) \
-                or (sum([v for k, v in self.agent_health.items()]) == 0):
+        if (self._step_count >= self._max_steps) or (sum([v for k, v in self.opp_health.items()]) == 0) or (sum([v for k, v in self.agent_health.items()]) == 0):
             self._agent_dones = [True for _ in range(self.n_agents)]
-
-        if all(self._agent_dones):
-            self._episode_count += 1
+        
 
         for i in range(self.n_agents):
             self._total_episode_reward[i] += rewards[i]
