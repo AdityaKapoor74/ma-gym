@@ -7,6 +7,7 @@ import gym
 import numpy as np
 from gym import spaces
 from gym.utils import seeding
+import random
 
 from ..utils.action_space import MultiAgentActionSpace
 from ..utils.draw import draw_grid, fill_cell, write_cell_text
