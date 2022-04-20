@@ -467,15 +467,15 @@ class Combat(gym.Env):
                     self._agent_cool[agent_i] = True
 
         # curriculum learning
-        if self._episode_count < 1000: # don't move
-            opp_action = [4 for _ in range(self._n_opponents)]
-        elif self._episode_count >= 1000 and self._episode_count < 5000: # just move
-            opp_action = [random.randint(0,4) for _ in range(self._n_opponents)]
-        else:
-            opp_action = self.opps_action
+        # if self._episode_count < 1000: # don't move
+        #     opp_action = [4 for _ in range(self._n_opponents)]
+        # elif self._episode_count >= 1000 and self._episode_count < 5000: # just move
+        #     opp_action = [random.randint(0,4) for _ in range(self._n_opponents)]
+        # else:
+        #     opp_action = self.opps_action
 
 
-        # opp_action = self.opps_action
+        opp_action = self.opps_action
         for opp_i, action in enumerate(opp_action):
             if self.opp_health[opp_i] > 0:
                 target_agent = action - 5
