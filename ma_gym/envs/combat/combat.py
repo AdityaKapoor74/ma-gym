@@ -428,8 +428,8 @@ class Combat(gym.Env):
         assert len(agents_action) == self.n_agents
 
         self._step_count += 1
-        sum_opp_health = sum([v for k, v in self.opp_health.items()])/10.0
-        sum_agent_health = sum([v for k, v in self.agent_health.items()])/10.0
+        sum_opp_health = sum([v for k, v in self.opp_health.items()])/100.0
+        sum_agent_health = sum([v for k, v in self.agent_health.items()])/100.0
         # self.step_cost = np.round(sum_agent_health-sum_opp_health,2)
         self.step_cost = -np.round(sum_opp_health,2)
         rewards = [self.step_cost for _ in range(self.n_agents)]
