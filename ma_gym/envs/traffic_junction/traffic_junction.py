@@ -332,6 +332,7 @@ class TrafficJunction(gym.Env):
         self._step_count += 1  # global environment step
         rewards = [0 for _ in range(self.n_agents)]  # initialize rewards array
         step_collisions = 0  # counts collisions in this step
+        step_reached_destination = 0 # number of cars that reached their destination
 
         # checks if there is a collision; this is done in the __update_agent_pos method
         # we still need to check both agent_dones and on_the_road because an agent may not be done
@@ -356,6 +357,7 @@ class TrafficJunction(gym.Env):
             if self.__reached_dest(agent_i):
                 self._agent_dones[agent_i] = True
                 self.curr_cars_count -= 1
+                step_reached_destination += 1
 
             # if max_steps was reached, terminate the episode
             if self._step_count >= self._max_steps:
@@ -377,7 +379,7 @@ class TrafficJunction(gym.Env):
                 self._agents_routes[agent_to_enter] = random.randint(1, self._n_routes)  # (1, 3)
                 self.__update_agent_view(agent_to_enter)
 
-        return self.get_full_agent_obs(), rewards, self._agent_dones, {'step_collisions': step_collisions}
+        return self.get_full_agent_obs(), rewards, self._agent_dones, {'step_collisions': step_collisions, 'step_reached_destination': step_reached_destination}
 
     def __get_next_direction(self, route, agent_i):
         """
