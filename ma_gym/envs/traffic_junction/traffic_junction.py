@@ -253,7 +253,31 @@ class TrafficJunction(gym.Env):
         if self.full_observable:
             _obs = np.array(agent_obs).flatten().tolist()
             agent_obs = [_obs for _ in range(self.n_agents)]
-        return agent_obs
+        return np.array(agent_obs)
+
+    def get_full_agent_obs(self):
+        agent_obs = []
+
+        for agent_i in range(self.n_agents):
+            pos = self.agent_pos[agent_i]
+
+            # agent id
+            _agent_i_obs = [0 for _ in range(self.n_agents)]
+            _agent_i_obs[agent_i] = 1
+
+            # location
+            _agent_i_obs += [pos[0] / (self._grid_shape[0] - 1), pos[1] / (self._grid_shape[1] - 1)]  # coordinates
+
+            # route 
+            route_agent_i = np.zeros(self._n_routes)
+            route_agent_i[self._agents_routes[agent_i] - 1] = 1
+
+            _agent_i_obs += route_agent_i.tolist()
+
+            agent_obs.append(_agent_i_obs)
+
+        
+        return np.array(agent_obs)
 
     def __draw_base_img(self):
         # create grid and make everything black
@@ -353,7 +377,7 @@ class TrafficJunction(gym.Env):
                 self._agents_routes[agent_to_enter] = random.randint(1, self._n_routes)  # (1, 3)
                 self.__update_agent_view(agent_to_enter)
 
-        return self.get_agent_obs(), rewards, self._agent_dones, {'step_collisions': step_collisions}
+        return self.get_full_agent_obs(), rewards, self._agent_dones, {'step_collisions': step_collisions}
 
     def __get_next_direction(self, route, agent_i):
         """
@@ -445,7 +469,7 @@ class TrafficJunction(gym.Env):
         self.agent_pos = {}
         self.__init_full_obs()
 
-        return self.get_agent_obs()
+        return self.get_full_agent_obs()
 
     def render(self, mode: str = 'human'):
         img = copy.copy(self._base_img)
