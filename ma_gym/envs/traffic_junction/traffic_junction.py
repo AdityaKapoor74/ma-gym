@@ -357,7 +357,7 @@ class TrafficJunction(gym.Env):
             # once a car reaches it's destination , it will never enter again in any of the tracks
             # Also, if all cars have reached their destination, then we terminate the episode.
             if self.__reached_dest(agent_i):
-                rewards[i] += self.goal_reached_reward
+                rewards[agent_i] += self.goal_reached_reward
                 self._agent_dones[agent_i] = True
                 self.curr_cars_count -= 1
                 step_reached_destination += 1
