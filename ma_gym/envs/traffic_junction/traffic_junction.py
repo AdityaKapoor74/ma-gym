@@ -32,7 +32,7 @@ class TrafficJunction(gym.Env):
     at every time step, where `τ` is the number time steps passed since the car arrived. Therefore, the total
     reward at time t is
 
-    r(t) = C^t * r_coll + \sum_{i=1}_{N^t} {\tau_i * r_time}
+    r(t) = C^t * r_coll + sum_{i=1}_{N^t} {\tau_i * r_time}
 
     where C^t is the number of collisions occurring at time t and N^t is number of cars present. The simulation is
     terminated after 'max_steps(default:40)' steps and is classified as a failure if one or more collisions have
@@ -266,7 +266,8 @@ class TrafficJunction(gym.Env):
             _agent_i_obs[agent_i] = 1
 
             # location
-            _agent_i_obs += [pos[0] / (self._grid_shape[0] - 1), pos[1] / (self._grid_shape[1] - 1)]  # coordinates
+            # _agent_i_obs += [pos[0] / (self._grid_shape[0] - 1), pos[1] / (self._grid_shape[1] - 1)]  # coordinates
+            _agent_i_obs += [pos[0], pos[1]]  # coordinates
 
             # route 
             route_agent_i = np.zeros(self._n_routes)
