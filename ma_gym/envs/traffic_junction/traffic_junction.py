@@ -351,7 +351,6 @@ class TrafficJunction(gym.Env):
                 # at every time step, where `τ` is the number time steps passed since the car arrived.
                 # We need to keep track of step_count of each car and that has to be multiplied.
                 rewards[agent_i] += self._step_cost * self._agent_step_count[agent_i]
-            self._total_episode_reward[agent_i] += rewards[agent_i]
 
             # checks if destination was reached
             # once a car reaches it's destination , it will never enter again in any of the tracks
@@ -366,21 +365,23 @@ class TrafficJunction(gym.Env):
             if self._step_count >= self._max_steps:
                 self._agent_dones[agent_i] = True
 
+            self._total_episode_reward[agent_i] += rewards[agent_i]
+
         # adds new car according to the probability _arrive_prob
-        if random.uniform(0, 1) < self._arrive_prob:
-            free_gates = self.__is_gate_free()
-            # if there are agents outside the road and if any gate is free
-            if not all(self._on_the_road) and free_gates:
-                # then gets first agent on the list which is not on the road
-                agent_to_enter = self._on_the_road.index(False)
-                pos = random.choice(free_gates)
-                self._agents_direction[agent_to_enter] = self._route_vectors[pos]
-                self.agent_pos[agent_to_enter] = pos
-                self.curr_cars_count += 1
-                self._on_the_road[agent_to_enter] = True
-                self._agent_turned[agent_to_enter] = False
-                self._agents_routes[agent_to_enter] = random.randint(1, self._n_routes)  # (1, 3)
-                self.__update_agent_view(agent_to_enter)
+        # if random.uniform(0, 1) < self._arrive_prob:
+        #     free_gates = self.__is_gate_free()
+        #     # if there are agents outside the road and if any gate is free
+        #     if not all(self._on_the_road) and free_gates:
+        #         # then gets first agent on the list which is not on the road
+        #         agent_to_enter = self._on_the_road.index(False)
+        #         pos = random.choice(free_gates)
+        #         self._agents_direction[agent_to_enter] = self._route_vectors[pos]
+        #         self.agent_pos[agent_to_enter] = pos
+        #         self.curr_cars_count += 1
+        #         self._on_the_road[agent_to_enter] = True
+        #         self._agent_turned[agent_to_enter] = False
+        #         self._agents_routes[agent_to_enter] = random.randint(1, self._n_routes)  # (1, 3)
+        #         self.__update_agent_view(agent_to_enter)
 
         # print("TOTAL REWARDS", len(rewards))
         # print(rewards)
