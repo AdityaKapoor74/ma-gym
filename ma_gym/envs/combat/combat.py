@@ -1,4 +1,4 @@
-'''
+
 # -*- coding: utf-8 -*-
 
 import copy
@@ -384,6 +384,47 @@ class Combat(gym.Env):
         return move
 
     @property
+    def opps_action_(self):
+        """
+        Opponent bots follow a hardcoded policy.
+
+        The bot policy is to attack the nearest enemy agent if it is within its firing range. If not,
+        it approaches the nearest visible enemy agent within visual range. An agent is visible to bots if it
+        is inside the visual range of that individual bot. 
+
+        :return:
+        """
+
+        visible_agents = [[] for _ in range(self._n_opponents)]
+        opp_agent_distance = {_: [] for _ in range(self._n_opponents)}
+
+        for opp_i, opp_pos in self.opp_pos.items():
+            for agent_i, agent_pos in self.agent_pos.items():
+                if self.agent_health[agent_i] > 0 and self.is_visible(opp_pos, agent_pos):
+                    visible_agents[opp_i].append(agent_i)
+                distance = abs(agent_pos[0] - opp_pos[0]) + abs(agent_pos[1] - opp_pos[1])  # manhattan distance
+                opp_agent_distance[opp_i].append([distance, agent_i])
+
+        opp_action_n = []
+        for opp_i in range(self._n_opponents):
+            action = None
+            for _, agent_i in sorted(opp_agent_distance[opp_i]):
+                if agent_i in visible_agents[opp_i]:
+                    if self.is_fireable(self._opp_cool[opp_i], self.opp_pos[opp_i], self.agent_pos[agent_i]):
+                        action = agent_i + 5
+                    elif self.opp_health[opp_i] > 0:
+                        action = self.reduce_distance_move(opp_i, self.opp_pos[opp_i], agent_i, self.agent_pos[agent_i])
+                    break
+            if action is None:
+                if self.opp_health[opp_i] > 0:
+                    # logger.debug('No visible agent for enemy:{}'.format(opp_i))
+                    action = self.np_random.choice(range(5))
+                else:
+                    action = 4  # dead opponent could only execute 'no-op' action.
+            opp_action_n.append(action)
+        return opp_action_n
+
+    @property
     def opps_action(self):
         """
         Opponent bots follow a hardcoded policy.
@@ -475,8 +516,10 @@ class Combat(gym.Env):
         # else:
         #     opp_action = self.opps_action
 
-
-        opp_action = self.opps_action
+        # action when agents have shared view
+        # opp_action = self.opps_action
+        # action when agents don't have shared view
+        opp_action = self.opps_action_
         for opp_i, action in enumerate(opp_action):
             if self.opp_health[opp_i] > 0:
                 target_agent = action - 5
@@ -561,8 +604,10 @@ PRE_IDS = {
     'agent': 'A',
     'opponent': 'X',
 }
-'''
 
+
+'''
+SHARED VS PRD
 
 # -*- coding: utf-8 -*-
 
@@ -1112,3 +1157,4 @@ PRE_IDS = {
     'agent': 'A',
     'opponent': 'X',
 }
+'''
