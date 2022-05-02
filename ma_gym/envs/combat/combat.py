@@ -151,7 +151,8 @@ class Combat(gym.Env):
         return np.array(_obs)
 
     def get_state(self):
-        state = np.zeros((self.n_agents + self._n_opponents, 6))
+        state_agents = np.zeros((self.n_agents, 6))
+        state_opponents = np.zeros((self._n_opponents, 6))
         # agent info
         for agent_i in range(self.n_agents):
             hp = self.agent_health[agent_i]
@@ -159,7 +160,7 @@ class Combat(gym.Env):
                 pos = self.agent_pos[agent_i]
                 feature = np.array([1, agent_i, hp, 1 if self._agent_cool[agent_i] else -1,
                                     pos[0] / self._grid_shape[0], pos[1] / self._grid_shape[1]], dtype=np.float)
-                state[agent_i] = feature
+                state_agents[agent_i] = feature
 
         # opponent info
         for opp_i in range(self._n_opponents):
@@ -168,9 +169,9 @@ class Combat(gym.Env):
                 pos = self.opp_pos[opp_i]
                 feature = np.array([-1, opp_i, opp_hp, 1 if self._opp_cool[opp_i] else -1,
                                     pos[0] / self._grid_shape[0], pos[1] / self._grid_shape[1]], dtype=np.float)
-                state[opp_i + self.n_agents] = feature
+                state_opponents[opp_i] = feature
 
-        return state.flatten()
+        return np.array(state_agents), np.array(state_opponents.flatten())
 
     def get_state_size(self):
         return (self.n_agents + self._n_opponents) * 6
@@ -250,7 +251,7 @@ class Combat(gym.Env):
         self._agents_trace = {_: [self.agent_pos[_]] for _ in range(self.n_agents)}
         self._opponents_trace = {_: [self.opp_pos[_]] for _ in range(self._n_opponents)}
 
-        return self.get_agent_obs()
+        return self.get_state()
 
     def render(self, mode='human'):
         img = copy.copy(self._base_img)
@@ -514,7 +515,7 @@ class Combat(gym.Env):
         # elif self._episode_count >= 1000 and self._episode_count < 5000: # just move
         #     opp_action = [random.randint(0,4) for _ in range(self._n_opponents)]
         # else:
-        #     opp_action = self.opps_action
+        #     opp_action = self.opps_action_
 
         # action when agents have shared view
         # opp_action = self.opps_action
@@ -572,7 +573,7 @@ class Combat(gym.Env):
         "total_opp_agents_health": sum([v for k, v in self.opp_health.items()])
         }
 
-        return self.get_agent_obs(), rewards, self._agent_dones, info
+        return self.get_state(), rewards, self._agent_dones, info
 
     def seed(self, n=None):
         self.np_random, seed = seeding.np_random(n)
