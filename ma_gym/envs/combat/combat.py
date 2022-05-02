@@ -478,7 +478,7 @@ class Combat(gym.Env):
         rew_when_opp_dead = 0
         for opp, hp in self.opp_health.items():
             if hp == 0:
-                rew_when_opp_dead += 0.1
+                rew_when_opp_dead += 1.0
         rewards = [self.step_cost+rew_when_opp_dead for _ in range(self.n_agents)]
 
 
