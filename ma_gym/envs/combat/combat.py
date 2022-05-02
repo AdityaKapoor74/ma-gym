@@ -159,7 +159,7 @@ class Combat(gym.Env):
             if hp > 0:
                 pos = self.agent_pos[agent_i]
                 feature = np.array([1, agent_i, hp, 1 if self._agent_cool[agent_i] else -1,
-                                    pos[0] / self._grid_shape[0], pos[1] / self._grid_shape[1]], dtype=np.float)
+                                    pos[0], pos[1]], dtype=np.float)
                 state_agents[agent_i] = feature
 
         # opponent info
@@ -168,7 +168,7 @@ class Combat(gym.Env):
             if opp_hp > 0:
                 pos = self.opp_pos[opp_i]
                 feature = np.array([-1, opp_i, opp_hp, 1 if self._opp_cool[opp_i] else -1,
-                                    pos[0] / self._grid_shape[0], pos[1] / self._grid_shape[1]], dtype=np.float)
+                                    pos[0], pos[1]], dtype=np.float)
                 state_opponents[opp_i] = feature
 
         return np.array(state_agents), np.array(state_opponents.flatten())
