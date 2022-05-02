@@ -151,8 +151,10 @@ class Combat(gym.Env):
         return np.array(_obs)
 
     def get_state(self):
+        # team ID, unique ID, location, health points and cooldown
         state_agents = np.zeros((self.n_agents, 6))
-        state_opponents = np.zeros((self._n_opponents, 6))
+        # team ID, unique ID, location, health points, cooldown, can_agent_fire, can_opponent_fire
+        state_opponents = np.zeros((self.n_agents, self._n_opponents, 8))
         # agent info
         for agent_i in range(self.n_agents):
             hp = self.agent_health[agent_i]
@@ -162,16 +164,18 @@ class Combat(gym.Env):
                                     pos[0], pos[1]], dtype=np.float)
                 state_agents[agent_i] = feature
 
-        # opponent info
-        for opp_i in range(self._n_opponents):
-            opp_hp = self.opp_health[opp_i]
-            if opp_hp > 0:
-                pos = self.opp_pos[opp_i]
-                feature = np.array([-1, opp_i, opp_hp, 1 if self._opp_cool[opp_i] else -1,
-                                    pos[0], pos[1]], dtype=np.float)
-                state_opponents[opp_i] = feature
+            # opponent info
+            for opp_i in range(self._n_opponents):
+                opp_hp = self.opp_health[opp_i]
+                if opp_hp > 0:
+                    pos = self.opp_pos[opp_i]
+                    can_agent_fire = self.is_fireable(self._agent_cool[agent_i], self.agent_pos[agent_i], self.opp_pos[opp_i])
+                    can_opponent_fire = self.is_fireable(self._opp_cool[agent_i], self.agent_pos[agent_i], self.opp_pos[opp_i])
+                    feature = np.array([-1, opp_i, opp_hp, 1 if self._opp_cool[opp_i] else -1,
+                                        pos[0], pos[1], can_agent_fire, can_opponent_fire], dtype=np.float)
+                    state_opponents[agent_i][opp_i] = feature
 
-        return np.array(state_agents), np.array(state_opponents.flatten())
+        return np.array(state_agents), np.array(state_opponents).reshape(self._n_opponents,-1)
 
     def get_state_size(self):
         return (self.n_agents + self._n_opponents) * 6
