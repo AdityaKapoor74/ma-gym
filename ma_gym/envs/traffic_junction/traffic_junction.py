@@ -371,20 +371,20 @@ class TrafficJunction(gym.Env):
             self._total_episode_reward[agent_i] += rewards[agent_i]
 
         # adds new car according to the probability _arrive_prob
-        if random.uniform(0, 1) < self._arrive_prob:
-            free_gates = self.__is_gate_free()
-            # if there are agents outside the road and if any gate is free
-            if not all(self._on_the_road) and free_gates:
-                # then gets first agent on the list which is not on the road
-                agent_to_enter = self._on_the_road.index(False)
-                pos = random.choice(free_gates)
-                self._agents_direction[agent_to_enter] = self._route_vectors[pos]
-                self.agent_pos[agent_to_enter] = pos
-                self.curr_cars_count += 1
-                self._on_the_road[agent_to_enter] = True
-                self._agent_turned[agent_to_enter] = False
-                self._agents_routes[agent_to_enter] = random.randint(1, self._n_routes)  # (1, 3)
-                self.__update_agent_view(agent_to_enter)
+        # if random.uniform(0, 1) < self._arrive_prob:
+        #     free_gates = self.__is_gate_free()
+        #     # if there are agents outside the road and if any gate is free
+        #     if not all(self._on_the_road) and free_gates:
+        #         # then gets first agent on the list which is not on the road
+        #         agent_to_enter = self._on_the_road.index(False)
+        #         pos = random.choice(free_gates)
+        #         self._agents_direction[agent_to_enter] = self._route_vectors[pos]
+        #         self.agent_pos[agent_to_enter] = pos
+        #         self.curr_cars_count += 1
+        #         self._on_the_road[agent_to_enter] = True
+        #         self._agent_turned[agent_to_enter] = False
+        #         self._agents_routes[agent_to_enter] = random.randint(1, self._n_routes)  # (1, 3)
+        #         self.__update_agent_view(agent_to_enter)
 
         # print("TOTAL REWARDS", len(rewards))
         # print(rewards)
