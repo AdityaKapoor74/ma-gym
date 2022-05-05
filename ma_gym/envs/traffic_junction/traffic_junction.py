@@ -54,7 +54,7 @@ class TrafficJunction(gym.Env):
     """
     metadata = {'render.modes': ['human', 'rgb_array']}
 
-    def __init__(self, grid_shape=(14, 14), step_cost=-0.01, n_max=4, collision_reward=-1.0, goal_reached_reward=0.0, arrive_prob=0.5,
+    def __init__(self, grid_shape=(14, 14), step_cost=-0.01, n_max=4, collision_reward=-1.0, goal_reached_reward=1.0, arrive_prob=0.5,
                  full_observable: bool = False, max_steps: int = 40):
         assert 1 <= n_max <= 10, "n_max should be range in [1,10]"
         assert 0 <= arrive_prob <= 1, "arrive probability should be in range [0,1]"
@@ -263,18 +263,21 @@ class TrafficJunction(gym.Env):
             pos = self.agent_pos[agent_i]
 
             # agent id
-            _agent_i_obs = [0 for _ in range(self.n_agents)]
-            _agent_i_obs[agent_i] = 1
+            # _agent_i_obs = [0 for _ in range(self.n_agents)]
+            # _agent_i_obs[agent_i] = 1
+            _agent_i_obs = [agent_i]
 
             # location
             # _agent_i_obs += [pos[0] / (self._grid_shape[0] - 1), pos[1] / (self._grid_shape[1] - 1)]  # coordinates
             _agent_i_obs += [pos[0], pos[1]]  # coordinates
 
             # route 
-            route_agent_i = np.zeros(self._n_routes)
-            route_agent_i[self._agents_routes[agent_i] - 1] = 1
+            # route_agent_i = np.zeros(self._n_routes)
+            # route_agent_i[self._agents_routes[agent_i] - 1] = 1
 
-            _agent_i_obs += route_agent_i.tolist()
+            # _agent_i_obs += route_agent_i.tolist()
+
+            _agent_i_obs.append(self._agents_routes[agent_i])
 
             agent_obs.append(_agent_i_obs)
 
