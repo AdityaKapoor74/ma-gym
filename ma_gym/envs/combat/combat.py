@@ -1,4 +1,4 @@
-
+'''
 # -*- coding: utf-8 -*-
 
 import copy
@@ -614,10 +614,10 @@ PRE_IDS = {
     'agent': 'A',
     'opponent': 'X',
 }
-
-
 '''
-SHARED VS PRD
+
+
+# SHARED VS PRD
 
 # -*- coding: utf-8 -*-
 
@@ -808,6 +808,60 @@ class Combat(gym.Env):
         return np.array(blue_obs), np.array(red_obs)
 
 
+    def get_state(self):
+        # PRD
+        # team ID, unique ID, location, health points and cooldown
+        prd_agents = np.zeros((self.n_agents, 6))
+        # team ID, unique ID, location, health points, cooldown, can_agent_fire, can_opponent_fire
+        prd_opponents = np.zeros((self.n_agents, self._n_opponents, 8))
+        # agent info
+        for agent_i in range(self.n_agents):
+            hp = self.agent_health[agent_i]
+            if hp > 0:
+                pos = self.agent_pos[agent_i]
+                feature = np.array([1, agent_i, hp, 1 if self._agent_cool[agent_i] else -1,
+                                    pos[0], pos[1]], dtype=np.float)
+                prd_agents[agent_i] = feature
+
+            # opponent info
+            for opp_i in range(self._n_opponents):
+                opp_hp = self.opp_health[opp_i]
+                if opp_hp > 0:
+                    pos = self.opp_pos[opp_i]
+                    can_agent_fire = self.is_fireable(self._agent_cool[agent_i], self.agent_pos[agent_i], self.opp_pos[opp_i])
+                    can_opponent_fire = self.is_fireable(self._opp_cool[agent_i], self.opp_pos[opp_i], self.agent_pos[agent_i])
+                    feature = np.array([-1, opp_i, opp_hp, 1 if self._opp_cool[opp_i] else -1,
+                                        pos[0], pos[1], can_agent_fire, can_opponent_fire], dtype=np.float)
+                    prd_opponents[agent_i][opp_i] = feature
+
+        # SHARED
+        # team ID, unique ID, location, health points and cooldown
+        shared_agents = np.zeros((self._n_opponents, 6))
+        # team ID, unique ID, location, health points, cooldown, can_agent_fire, can_opponent_fire
+        shared_opponents = np.zeros((self._n_opponents, self.n_agents, 8))
+        # agent info
+        for agent_i in range(self._n_opponents):
+            hp = self.opp_health[agent_i]
+            if hp > 0:
+                pos = self.opp_pos[agent_i]
+                feature = np.array([1, agent_i, hp, 1 if self._opp_cool[agent_i] else -1,
+                                    pos[0], pos[1]], dtype=np.float)
+                shared_agents[agent_i] = feature
+
+            # opponent info
+            for opp_i in range(self.n_agents):
+                opp_hp = self.agent_health[opp_i]
+                if opp_hp > 0:
+                    pos = self.agent_pos[opp_i]
+                    can_agent_fire = self.is_fireable(self._opp_cool[agent_i], self.opp_pos[agent_i], self.agent_pos[opp_i])
+                    can_opponent_fire = self.is_fireable(self._agent_cool[agent_i], self.agent_pos[opp_i], self.opp_pos[agent_i])
+                    feature = np.array([-1, opp_i, opp_hp, 1 if self._agent_cool[opp_i] else -1,
+                                        pos[0], pos[1], can_agent_fire, can_opponent_fire], dtype=np.float)
+                    shared_opponents[agent_i][opp_i] = feature
+
+        return np.array(prd_agents), np.array(prd_opponents).reshape(self._n_opponents,-1), np.array(shared_agents), np.array(shared_opponents).reshape(self.n_agents,-1)
+
+
     def get_state_size(self):
         return (self.n_agents + self._n_opponents) * 6
 
@@ -888,7 +942,7 @@ class Combat(gym.Env):
         self._agents_trace = {_: [self.agent_pos[_]] for _ in range(self.n_agents)}
         self._opponents_trace = {_: [self.opp_pos[_]] for _ in range(self._n_opponents)}
 
-        return self.get_agent_obs()
+        return self.get_state()
 
     def render(self, mode='human'):
         img = copy.copy(self._base_img)
@@ -1022,6 +1076,120 @@ class Combat(gym.Env):
         return move
 
 
+    def step_agent(self, agents_action):
+        assert len(agents_action) == self.n_agents
+
+        self._step_count += 1
+        sum_opp_health = sum([v for k, v in self.opp_health.items()])/100.0
+        sum_agent_health = sum([v for k, v in self.agent_health.items()])/100.0
+        self.step_cost = np.round(sum_agent_health-sum_opp_health,2)
+        # self.step_cost = -np.round(sum_opp_health,2)
+        rew_when_opp_dead = 0
+        for opp, hp in self.opp_health.items():
+            if hp == 0:
+                rew_when_opp_dead += 1.0
+        rewards = [self.step_cost+rew_when_opp_dead for _ in range(self.n_agents)]
+
+
+        # What's the confusion?
+        # What if agents attack each other at the same time? Should both of them be effected?
+        # Ans: I guess, yes
+        # What if other agent moves before the attack is performed in the same time-step.
+        # Ans: May be, I can process all the attack actions before move directions to ensure attacks have their effect.
+
+        # processing attacks
+        agent_health, opp_health = copy.copy(self.agent_health), copy.copy(self.opp_health)
+        for agent_i, action in enumerate(agents_action):
+            if self.agent_health[agent_i] > 0:
+                if action > 4:  # attack actions
+                    target_opp = action - 5
+                    if self.is_fireable(self._agent_cool[agent_i], self.agent_pos[agent_i], self.opp_pos[target_opp]) \
+                            and opp_health[target_opp] > 0:
+                        # Fire
+                        opp_health[target_opp] -= 1
+                        rewards[agent_i] += 1
+
+                        # Update agent cooling down
+                        self._agent_cool[agent_i] = False
+                        self._agent_cool_step[agent_i] = self._step_cool
+
+                        # Remove opp from the map
+                        if opp_health[target_opp] == 0:
+                            pos = self.opp_pos[target_opp]
+                            self._full_obs[pos[0]][pos[1]] = PRE_IDS['empty']
+
+                # Update agent cooling down
+                self._agent_cool_step[agent_i] = max(self._agent_cool_step[agent_i] - 1, 0)
+                if self._agent_cool_step[agent_i] == 0 and not self._agent_cool[agent_i]:
+                    self._agent_cool[agent_i] = True
+
+        # curriculum learning
+        # if self._episode_count < 1000: # don't move
+        #     opp_action = [4 for _ in range(self._n_opponents)]
+        # elif self._episode_count >= 1000 and self._episode_count < 5000: # just move
+        #     opp_action = [random.randint(0,4) for _ in range(self._n_opponents)]
+        # else:
+        #     opp_action = self.opps_action_
+
+        # action when agents have shared view
+        # opp_action = self.opps_action
+        # action when agents don't have shared view
+        opp_action = self.opps_action_
+        for opp_i, action in enumerate(opp_action):
+            if self.opp_health[opp_i] > 0:
+                target_agent = action - 5
+                if action > 4:  # attack actions
+                    if self.is_fireable(self._opp_cool[opp_i], self.opp_pos[opp_i], self.agent_pos[target_agent]) \
+                            and agent_health[target_agent] > 0:
+                        # Fire
+                        agent_health[target_agent] -= 1
+                        rewards[target_agent] -= 1
+
+                        # Update opp cooling down
+                        self._opp_cool[opp_i] = False
+                        self._opp_cool_step[opp_i] = self._step_cool
+
+                        # Remove agent from the map
+                        if agent_health[target_agent] == 0:
+                            pos = self.agent_pos[target_agent]
+                            self._full_obs[pos[0]][pos[1]] = PRE_IDS['empty']
+                # Update opp cooling down
+                self._opp_cool_step[opp_i] = max(self._opp_cool_step[opp_i] - 1, 0)
+                if self._opp_cool_step[opp_i] == 0 and not self._opp_cool[opp_i]:
+                    self._opp_cool[opp_i] = True
+
+        self.agent_health, self.opp_health = agent_health, opp_health
+
+        # process move actions
+        for agent_i, action in enumerate(agents_action):
+            if self.agent_health[agent_i] > 0:
+                if action <= 4:
+                    self.__update_agent_pos(agent_i, action)
+
+        for opp_i, action in enumerate(opp_action):
+            if self.opp_health[opp_i] > 0:
+                if action <= 4:
+                    self.__update_opp_pos(opp_i, action)
+
+        # step overflow or all opponents dead
+        if (self._step_count >= self._max_steps) or (sum([v for k, v in self.opp_health.items()]) == 0) or (sum([v for k, v in self.agent_health.items()]) == 0):
+            self._agent_dones = [True for _ in range(self.n_agents)]
+        
+
+        for i in range(self.n_agents):
+            self._total_episode_reward[i] += rewards[i]
+
+
+        info = {
+        "num_agents_alive": sum([v>0 for k, v in self.agent_health.items()]),
+        "num_opp_agents_alive": sum([v>0 for k, v in self.opp_health.items()]),
+        "total_agents_health": sum([v for k, v in self.agent_health.items()]),
+        "total_opp_agents_health": sum([v for k, v in self.opp_health.items()])
+        }
+
+        return self.get_state(), rewards, self._agent_dones, info
+
+
     def step(self, agents_action, opp_agents_action):
         assert len(agents_action) == self.n_agents
         assert len(opp_agents_action) == self._n_opponents
@@ -1029,9 +1197,16 @@ class Combat(gym.Env):
         self._step_count += 1
         sum_opp_health = sum([v for k, v in self.opp_health.items()])/100.0
         sum_agent_health = sum([v for k, v in self.agent_health.items()])/100.0
-        # self.step_cost = np.round(sum_agent_health-sum_opp_health,2)
-        rewards_agents = [-np.round(sum_opp_health,2) for _ in range(self.n_agents)]
-        rewards_opp_agents = [-np.round(sum_agent_health,2) for _ in range(self._n_opponents)]
+        rew_when_opp_dead = 0
+        for opp, hp in self.opp_health.items():
+            if hp == 0:
+                rew_when_opp_dead += 1.0
+        rew_when_agent_dead = 0
+        for agent, hp in self.agent_health.items():
+            if hp == 0:
+                rew_when_agent_dead += 1.0
+        rewards_agents = [rew_when_opp_dead+np.round(sum_agent_health-sum_opp_health,2) for _ in range(self.n_agents)]
+        rewards_opp_agents = [rew_when_agent_dead+np.round(sum_opp_health-sum_agent_health,2) for _ in range(self._n_opponents)]
 
         # What's the confusion?
         # What if agents attack each other at the same time? Should both of them be effected?
@@ -1133,9 +1308,9 @@ class Combat(gym.Env):
         "opp_agent_win": opp_agent_win
         }
 
-        agent_states, opp_agent_states = self.get_agent_obs()
+        prd_agent_state, prd_opponent_state, shared_agent_state, shared_opponent_state = self.get_state()
 
-        return agent_states, opp_agent_states, rewards_agents, rewards_opp_agents, self._agent_dones, self._opp_agent_dones, info
+        return prd_agent_state, prd_opponent_state, shared_agent_state, shared_opponent_state, rewards_agents, rewards_opp_agents, self._agent_dones, self._opp_agent_dones, info
 
     def seed(self, n=None):
         self.np_random, seed = seeding.np_random(n)
@@ -1167,4 +1342,3 @@ PRE_IDS = {
     'agent': 'A',
     'opponent': 'X',
 }
-'''

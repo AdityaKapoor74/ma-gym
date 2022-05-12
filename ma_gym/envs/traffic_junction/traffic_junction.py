@@ -54,7 +54,7 @@ class TrafficJunction(gym.Env):
     """
     metadata = {'render.modes': ['human', 'rgb_array']}
 
-    def __init__(self, grid_shape=(14, 14), step_cost=-0.01, n_max=4, collision_reward=-1.0, goal_reached_reward=1.0, arrive_prob=0.5,
+    def __init__(self, grid_shape=(14, 14), step_cost=-0.01, n_max=4, collision_reward=-1.0, goal_reached_reward=0.0, arrive_prob=0.5,
                  full_observable: bool = False, max_steps: int = 40):
         assert 1 <= n_max <= 10, "n_max should be range in [1,10]"
         assert 0 <= arrive_prob <= 1, "arrive probability should be in range [0,1]"
@@ -257,32 +257,35 @@ class TrafficJunction(gym.Env):
         return np.array(agent_obs)
 
     def get_full_agent_obs(self):
-        agent_obs = []
+        agent_obs_critic = []
+        agent_obs_actor = []
 
         for agent_i in range(self.n_agents):
             pos = self.agent_pos[agent_i]
 
-            # agent id
-            # _agent_i_obs = [0 for _ in range(self.n_agents)]
-            # _agent_i_obs[agent_i] = 1
             _agent_i_obs = [agent_i]
 
-            # location
-            # _agent_i_obs += [pos[0] / (self._grid_shape[0] - 1), pos[1] / (self._grid_shape[1] - 1)]  # coordinates
             _agent_i_obs += [pos[0], pos[1]]  # coordinates
-
-            # route 
-            # route_agent_i = np.zeros(self._n_routes)
-            # route_agent_i[self._agents_routes[agent_i] - 1] = 1
-
-            # _agent_i_obs += route_agent_i.tolist()
 
             _agent_i_obs.append(self._agents_routes[agent_i])
 
-            agent_obs.append(_agent_i_obs)
+            agent_obs_critic.append([agent_i, pos[0], pos[1], self._agents_routes[agent_i]])
 
-        
-        return np.array(agent_obs)
+
+            for other_agent_i in range(self.n_agents):
+
+                if agent_i == other_agent_i:
+                    continue
+
+                other_pos = self.agent_pos[other_agent_i]
+
+                _agent_i_obs.append(other_agent_i)
+                _agent_i_obs += [other_pos[0]-pos[0], other_pos[1]-pos[1]]
+                
+            
+            agent_obs_actor.append(_agent_i_obs)
+
+        return np.array(agent_obs_critic), np.array(agent_obs_actor)
 
     def __draw_base_img(self):
         # create grid and make everything black
@@ -353,7 +356,7 @@ class TrafficJunction(gym.Env):
                 # gives additional step punishment to avoid jams
                 # at every time step, where `τ` is the number time steps passed since the car arrived.
                 # We need to keep track of step_count of each car and that has to be multiplied.
-                rewards[agent_i] += self._step_cost*10.0 #* self._agent_step_count[agent_i]
+                rewards[agent_i] += self._step_cost * self._agent_step_count[agent_i]
 
             # checks if destination was reached
             # once a car reaches it's destination , it will never enter again in any of the tracks
@@ -436,7 +439,7 @@ class TrafficJunction(gym.Env):
         if move == 0:  # GAS
             if route == 1:
                 next_pos = tuple([curr_pos[i] + self._agents_direction[agent_i][i] for i in range(len(curr_pos))])
-            else:
+            elif route == 2 or route == 3:
                 turn_pos = self._turning_places[self._agents_direction[agent_i]]
                 # if the car reached the turning position in the junction for his route and starting gate
                 if curr_pos == turn_pos[route - 2] and not self._agent_turned[agent_i]:
@@ -452,7 +455,7 @@ class TrafficJunction(gym.Env):
             raise Exception('Action Not found!')
 
         # if there is a collision
-        if next_pos is not None and self.__check_collision(next_pos):
+        if next_pos is not None and self.__check_collision(next_pos) and route != -1:
             return True
 
         # if there is no collision and the next position is free updates agent position
