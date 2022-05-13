@@ -54,7 +54,7 @@ class TrafficJunction(gym.Env):
     """
     metadata = {'render.modes': ['human', 'rgb_array']}
 
-    def __init__(self, grid_shape=(14, 14), step_cost=-0.01, n_max=4, collision_reward=-0.5, goal_reached_reward=0.0, arrive_prob=0.5,
+    def __init__(self, grid_shape=(14, 14), step_cost=-0.01, n_max=4, collision_reward=-0.5, goal_reached_reward=0.5, arrive_prob=0.5,
                  full_observable: bool = False, max_steps: int = 40):
         assert 1 <= n_max <= 10, "n_max should be range in [1,10]"
         assert 0 <= arrive_prob <= 1, "arrive probability should be in range [0,1]"
