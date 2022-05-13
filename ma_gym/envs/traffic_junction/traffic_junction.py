@@ -367,6 +367,9 @@ class TrafficJunction(gym.Env):
                 self._agent_dones[agent_i] = True
                 self.curr_cars_count -= 1
                 step_reached_destination += 1
+                # reset car
+                self.agent_pos[agent_i] = (-1, -1)
+                self._agents_routes[agent_i] = -1
 
             # if max_steps was reached, terminate the episode
             if self._step_count >= self._max_steps:
