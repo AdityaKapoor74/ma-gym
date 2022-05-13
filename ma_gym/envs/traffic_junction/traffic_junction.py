@@ -54,7 +54,7 @@ class TrafficJunction(gym.Env):
     """
     metadata = {'render.modes': ['human', 'rgb_array']}
 
-    def __init__(self, grid_shape=(14, 14), step_cost=-0.01, n_max=4, collision_reward=-1.0, goal_reached_reward=0.0, arrive_prob=0.5,
+    def __init__(self, grid_shape=(14, 14), step_cost=-0.01, n_max=4, collision_reward=-0.5, goal_reached_reward=0.0, arrive_prob=0.5,
                  full_observable: bool = False, max_steps: int = 40):
         assert 1 <= n_max <= 10, "n_max should be range in [1,10]"
         assert 0 <= arrive_prob <= 1, "arrive probability should be in range [0,1]"
@@ -147,7 +147,8 @@ class TrafficJunction(gym.Env):
         random.shuffle(shuffled_gates)
         for agent_i in range(self.n_agents):
             if self.curr_cars_count >= len(self._entry_gates):
-                self.agent_pos[agent_i] = (0, 0)  # not yet on the road
+                self.agent_pos[agent_i] = (-1, -1)  # not yet on the road
+                self._agents_routes[agent_i] = -1
             else:
                 pos = shuffled_gates[agent_i]
                 # gets direction vector for agent_i that spawned in position pos
