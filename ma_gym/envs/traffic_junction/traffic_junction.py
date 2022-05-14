@@ -54,7 +54,7 @@ class TrafficJunction(gym.Env):
     """
     metadata = {'render.modes': ['human', 'rgb_array']}
 
-    def __init__(self, grid_shape=(14, 14), step_cost=-0.01, n_max=4, collision_reward=-0.5, goal_reached_reward=1.0, arrive_prob=0.5,
+    def __init__(self, grid_shape=(14, 14), step_cost=-0.01, n_max=4, collision_reward=-0.1, goal_reached_reward=1.0, arrive_prob=0.5,
                  full_observable: bool = False, max_steps: int = 40):
         assert 1 <= n_max <= 10, "n_max should be range in [1,10]"
         assert 0 <= arrive_prob <= 1, "arrive probability should be in range [0,1]"
@@ -66,7 +66,7 @@ class TrafficJunction(gym.Env):
         self._max_steps = max_steps
         self._step_count = 0  # environment step counter
         self._collision_reward = collision_reward
-        self.goal_reached_reward = goal_reached_reward
+        self.goal_reached_reward = goal_reached_rewards
         self._total_episode_reward = None
         self._arrive_prob = arrive_prob
         self._n_max = n_max
@@ -357,7 +357,7 @@ class TrafficJunction(gym.Env):
                 # gives additional step punishment to avoid jams
                 # at every time step, where `τ` is the number time steps passed since the car arrived.
                 # We need to keep track of step_count of each car and that has to be multiplied.
-                rewards[agent_i] += self._step_cost * self._agent_step_count[agent_i]
+                rewards[agent_i] += self._step_cost #* self._agent_step_count[agent_i]
 
             # checks if destination was reached
             # once a car reaches it's destination , it will never enter again in any of the tracks
