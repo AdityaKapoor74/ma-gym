@@ -54,7 +54,7 @@ class TrafficJunction(gym.Env):
     """
     metadata = {'render.modes': ['human', 'rgb_array']}
 
-    def __init__(self, grid_shape=(14, 14), step_cost=-0.01, n_max=4, collision_reward=-0.1, goal_reached_reward=0.1, arrive_prob=0.2,
+    def __init__(self, grid_shape=(14, 14), step_cost=-0.01, n_max=4, collision_reward=-0.01, goal_reached_reward=0.1, arrive_prob=0.2,
                  full_observable: bool = False, max_steps: int = 40):
         assert 1 <= n_max <= 10, "n_max should be range in [1,10]"
         assert 0 <= arrive_prob <= 1, "arrive probability should be in range [0,1]"
@@ -351,7 +351,7 @@ class TrafficJunction(gym.Env):
                 self._agent_step_count[agent_i] += 1  # agent step count
                 collision_flag = self.__update_agent_pos(agent_i, action)
                 if collision_flag:
-                    # rewards[agent_i] += self._collision_reward
+                    rewards[agent_i] += self._collision_reward
                     step_collisions += 1
 
                 # gives additional step punishment to avoid jams
