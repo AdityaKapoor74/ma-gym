@@ -54,7 +54,7 @@ class TrafficJunction(gym.Env):
     """
     metadata = {'render.modes': ['human', 'rgb_array']}
 
-    def __init__(self, grid_shape=(14, 14), step_cost=-0.01, n_max=4, collision_reward=0.0, goal_reached_reward=0.1, arrive_prob=0.05,
+    def __init__(self, grid_shape=(14, 14), step_cost=-0.01, n_max=4, collision_reward=0.0, goal_reached_reward=0.0, arrive_prob=0.05,
                  full_observable: bool = False, max_steps: int = 40):
         assert 1 <= n_max <= 10, "n_max should be range in [1,10]"
         assert 0 <= arrive_prob <= 1, "arrive probability should be in range [0,1]"
@@ -73,6 +73,7 @@ class TrafficJunction(gym.Env):
         self._step_cost = step_cost
         self.curr_cars_count = 0
         self._n_routes = 3
+        self.episode = 0
 
         self._agent_view_mask = (3, 3)
 
@@ -484,6 +485,11 @@ class TrafficJunction(gym.Env):
         self._on_the_road = [False for _ in range(self.n_agents)]
         self._agent_turned = [False for _ in range(self.n_agents)]
         self.curr_cars_count = 0
+
+
+        self.episode += 1
+        if self.episode > 250 and self.episode <= 1250:
+            self._arrive_prob = 0.05 + ((0.2-0.05)/1000)*(self.episode-250)
 
         self.agent_pos = {}
         self.__init_full_obs()
