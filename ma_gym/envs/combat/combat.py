@@ -1,4 +1,3 @@
-'''
 # -*- coding: utf-8 -*-
 
 import copy
@@ -614,9 +613,8 @@ PRE_IDS = {
     'agent': 'A',
     'opponent': 'X',
 }
+
 '''
-
-
 # SHARED VS PRD
 
 # -*- coding: utf-8 -*-
@@ -1342,3 +1340,5 @@ PRE_IDS = {
     'agent': 'A',
     'opponent': 'X',
 }
+
+'''
